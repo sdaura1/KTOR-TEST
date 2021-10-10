@@ -2,10 +2,7 @@ package com.foodvendor
 
 import com.foodvendor.authentication.JWTConfig
 import com.foodvendor.entities.*
-import com.foodvendor.repository.InMemoryMenuItemRepository
-import com.foodvendor.repository.InMemoryOrderRepository
-import com.foodvendor.repository.InMemoryUserRepository
-import com.foodvendor.repository.InMemoryVendorRepository
+import com.foodvendor.repository.*
 import io.ktor.application.*
 import io.ktor.auth.*
 import io.ktor.auth.jwt.*
@@ -17,6 +14,7 @@ import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import org.jetbrains.exposed.sql.Database
 
 fun main(args: Array<String>) {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -42,10 +40,25 @@ fun Application.configureRouting(){
 
     routing {
 
-        val repo = InMemoryVendorRepository()
-        val userRepo = InMemoryUserRepository()
-        val orderRepo = InMemoryOrderRepository()
-        val menuItemRepo = InMemoryMenuItemRepository()
+        val vendorRepo = SQLVendorRepository(
+        Database.connect(url = "jdbc:pgsql://localhost:5432/foodvendors",
+            user = "postgres", password = "12345"))
+        vendorRepo.init()
+
+        val userRepo = SQLUserRepository(
+            Database.connect(url = "jdbc:pgsql://localhost:5432/foodvendors",
+                user = "postgres", password = "12345"))
+        userRepo.init()
+
+        val orderRepo = SQLOrderRepository(
+            Database.connect(url = "jdbc:pgsql://localhost:5432/foodvendors",
+                user = "postgres", password = "12345"))
+        orderRepo.init()
+
+        val menuItemRepo = SQLMenuItemRepository(
+            Database.connect(url = "jdbc:pgsql://localhost:5432/foodvendors",
+                user = "postgres", password = "12345"))
+        menuItemRepo.init()
 
         post("/login") {
             val loginBody = call.receive<LoginBody>()
@@ -56,9 +69,36 @@ fun Application.configureRouting(){
                     "Invalid Credentials")
                 return@post
             }
-            val token = jwtConfig
-                .generateToken(JWTConfig.JwtUser(user.userId, user.username))
-            call.respond(token)
+            val token = jwtConfig.generateToken(JWTConfig.JwtUser(user.username, user.id))
+
+            val userCredentials = UserCredentials(
+                token,
+                user.username,
+                user.phone,
+                user.address
+            )
+            call.respond(userCredentials)
+        }
+
+        post("/register") {
+            val registerBody = call.receive<RegisterBody>()
+
+            val registerUser = UserRepository.User(
+                "",
+                registerBody.username,
+                registerBody.password,
+                registerBody.name,
+                registerBody.phone,
+                registerBody.address
+            )
+
+            val user = userRepo.addUser(registerUser)
+            if (user == null){
+                call.respond(HttpStatusCode.BadRequest,
+                    "User already Exists")
+                return@post
+            }
+            call.respond(user)
         }
 
         authenticate {
@@ -69,7 +109,7 @@ fun Application.configureRouting(){
 
             get("/vendor/{id}") {
                 val id = call.parameters["id"]
-                val vendor = repo.getVendor(id.toString())
+                val vendor = vendorRepo.getVendor(id.toString())
 
                 if (vendor == null) {
                     call.respond(HttpStatusCode.NotFound,
@@ -88,10 +128,11 @@ fun Application.configureRouting(){
                     return@put
                 }
 
-                val updated = repo.updateVendor(vendorId, vendorDraft)
+                val updated = vendorRepo.updateVendor(vendorId, vendorDraft)
+                val vendor = vendorRepo.getVendor(vendorId)
 
-                if (updated){
-                    call.respond(HttpStatusCode.OK)
+                if (updated > 0){
+                    call.respond(vendor!!)
                 }else {
                     call.respond(HttpStatusCode.NotFound,
                         "No vendor with id $vendorId")
@@ -107,9 +148,9 @@ fun Application.configureRouting(){
                     return@delete
                 }
 
-                val removed = repo.removeVendor(vendorId)
-                if (removed){
-                    call.respond(HttpStatusCode.OK)
+                val removed = vendorRepo.removeVendor(vendorId)
+                if (removed > 0){
+                    call.respond(HttpStatusCode.OK, "Deleted Successfully")
                 }else {
                     call.respond(HttpStatusCode.NotFound,
                         "No vendor with id $vendorId")
@@ -118,12 +159,12 @@ fun Application.configureRouting(){
 
             post("/vendor") {
                 val vendorDraft = call.receive<VendorDraft>()
-                val vendor = repo.addVendor(vendorDraft)
+                val vendor = vendorRepo.addVendor(vendorDraft)
                 call.respond(vendor)
             }
 
             get("/vendors") {
-                call.respond(repo.getAllVendor())
+                call.respond(vendorRepo.getAllVendors())
             }
 
             post("/order") {
@@ -159,9 +200,10 @@ fun Application.configureRouting(){
                 }
 
                 val updated = orderRepo.updateOrder(orderId, orderDraft)
+                val order = orderRepo.getOrder(orderId)
 
-                if (updated){
-                    call.respond(HttpStatusCode.OK)
+                if (updated > 0){
+                    call.respond(order!!)
                 }else {
                     call.respond(HttpStatusCode.NotFound,
                         "No vendor with id $orderId")
@@ -178,11 +220,11 @@ fun Application.configureRouting(){
                 }
 
                 val removed = orderRepo.removeOrder(orderId)
-                if (removed){
-                    call.respond(HttpStatusCode.OK)
+                if (removed > 0){
+                    call.respond(HttpStatusCode.OK, "Order Deleted Successfully")
                 }else {
                     call.respond(HttpStatusCode.NotFound,
-                        "No vendor with id $orderId")
+                        "No order with id $orderId")
                 }
             }
 
@@ -219,9 +261,10 @@ fun Application.configureRouting(){
                 }
 
                 val updated = menuItemRepo.updateMenuItem(menuId, menuItemDraft)
+                val menuItem = menuItemRepo.getMenuItem(menuId)
 
-                if (updated){
-                    call.respond(HttpStatusCode.OK)
+                if (updated > 0){
+                    call.respond(menuItem!!)
                 }else {
                     call.respond(HttpStatusCode.NotFound,
                         "No vendor with id $menuId")
@@ -238,8 +281,9 @@ fun Application.configureRouting(){
                 }
 
                 val removed = menuItemRepo.deleteMenuItem(menuId)
-                if (removed){
-                    call.respond(HttpStatusCode.OK)
+                if (removed > 0){
+                    call.respond(HttpStatusCode.OK,
+                        "Menu Item removed Successfully")
                 }else {
                     call.respond(HttpStatusCode.NotFound,
                         "No vendor with id $menuId")

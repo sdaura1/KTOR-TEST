@@ -5,13 +5,15 @@ import com.foodvendor.entities.MenuItemDraft
 
 interface MenuItemRepository {
 
+    fun init()
+
     fun getMenuItem(id: String): MenuItem?
 
     fun getMenuItems(vendorId: String): List<MenuItem>
 
     fun addMenuItem(menuItemDraft: MenuItemDraft): MenuItem
 
-    fun deleteMenuItem(id: String): Boolean
+    fun deleteMenuItem(id: String): Int
 
-    fun updateMenuItem(id: String, menuItemDraft: MenuItemDraft): Boolean
+    fun updateMenuItem(id: String, menuItemDraft: MenuItemDraft): Int
 }

@@ -5,13 +5,15 @@ import com.foodvendor.entities.Vendor
 
 interface VendorRepository {
 
-    fun getAllVendor(): List<Vendor>
+    fun init()
+
+    fun getAllVendors(): List<Vendor>
 
     fun getVendor(id: String): Vendor?
 
     fun addVendor(vendorDraft: VendorDraft): Vendor
 
-    fun removeVendor(id: String): Boolean
+    fun removeVendor(id: String): Int
 
-    fun updateVendor(id: String, vendorDraft: VendorDraft): Boolean
+    fun updateVendor(id: String, vendorDraft: VendorDraft): Int
 }

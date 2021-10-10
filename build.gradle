@@ -42,6 +42,20 @@ dependencies {
     implementation "org.ktorm:ktorm-core:3.4.1"
     implementation "org.ktorm:ktorm-support-mysql:3.4.1"
 
+    //exposed
+    implementation 'org.jetbrains.exposed:exposed-core:0.34.1'
+    implementation 'org.jetbrains.exposed:exposed-jdbc:0.34.1'
+    implementation 'org.jetbrains.exposed:exposed-dao:0.34.1'
+
+    implementation 'com.h2database:h2:1.4.200'
+    implementation 'com.zaxxer:HikariCP:5.0.0'
+    implementation "com.impossibl.pgjdbc-ng:pgjdbc-ng:0.8.9"
+    runtime group: 'org.xerial', name: 'sqlite-jdbc', version: '3.21.0'
+
+    implementation "ch.qos.logback:logback-classic:$logback_version"
+
+    testImplementation "io.ktor:ktor-server-tests:$ktor_version"
+
     //jwt
     implementation group: 'io.ktor', name: 'ktor-gson', version: ktor_version
     implementation group: 'io.ktor', name: 'ktor-auth', version: ktor_version

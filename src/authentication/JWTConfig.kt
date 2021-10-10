@@ -34,7 +34,7 @@ class JWTConfig(jwtSecret: String) {
         verifier(jwtVerifier)
         realm = jwtRealm
         validate {
-            val userId = it.payload.getClaim(CLAIM_USERID).asInt()
+            val userId = it.payload.getClaim(CLAIM_USERID).asString()
             val username = it.payload.getClaim(CLAIM_USERNAME).asString()
 
             if (userId != null && username != null){
@@ -44,5 +44,5 @@ class JWTConfig(jwtSecret: String) {
             }
         }
     }
-    data class JwtUser(val userId: Int, val userName: String): Principal
+    data class JwtUser(val userId: String, val userName: String): Principal
 }

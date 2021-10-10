@@ -2,10 +2,30 @@ package com.foodvendor.repository
 
 interface UserRepository {
 
-    fun getUser(username: String, password: String): User?
+    fun init()
+
+    fun getUser(phone: String, password: String): User?
+
+    fun addUser(user: User): User?
+
+    fun deleteUser(id: String): Int
+
+    fun updateUser(id: String, userDraft: UserDraft): Int
 
     data class User(
-        val userId: Int,
-        val username: String
+        val id: String,
+        val username: String,
+        val password: String,
+        val name: String,
+        val phone: String,
+        val address: String
+    )
+
+    data class UserDraft(
+        val username: String,
+        val password: String,
+        val name: String,
+        val phone: String,
+        val address: String
     )
 }

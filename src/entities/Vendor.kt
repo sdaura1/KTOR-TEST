@@ -1,7 +1,7 @@
 package com.foodvendor.entities
 
 data class Vendor(
-    val  id: String,
+    val id: String,
     var name: String,
     var address: String,
     var phone: String,
