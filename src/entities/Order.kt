@@ -1,7 +1,9 @@
 package com.foodvendor.entities
 
 data class Order (
+    val orderId: String,
     val id: String,
+    var username: String,
     var menuItemId: String,
     var businessId: String,
     var quantity: Int,

@@ -7,9 +7,11 @@ interface OrderRepository {
 
     fun init()
 
-    fun makeOrder(orderDraft: OrderDraft): Order?
+    fun makeOrder(orderDrafts: List<OrderDraft>): List<Order>
 
-    fun getOrders(vendorId: String): List<Order>
+    fun getUserOrders(username: String): List<Order>?
+
+    fun getVendorOrders(vendorId: String): List<Order>?
 
     fun getOrder(id: String): Order?
 

@@ -11,37 +11,47 @@ class SQLUserRepository(private val db: Database): UserRepository {
         SchemaUtils.create(DBUserTable)
     }
 
-    override fun getUser(phone: String, password: String): UserRepository.User? = transaction {
-        val returnedUser: UserRepository.User?
-        val withUsername = DBUserTable.select { DBUserTable.phone eq phone }.map {
+    override fun getUser(phone: String, password: String): UserRepository.User = transaction {
+        var returnedUser: UserRepository.User? = null
+        DBUserTable.select { DBUserTable.phone eq phone }.map {
+            returnedUser = if (it[DBUserTable.password] == password){
+                UserRepository.User(
+                    it[DBUserTable.id],
+                    it[DBUserTable.username],
+                    it[DBUserTable.name],
+                    it[DBUserTable.phone],
+                    it[DBUserTable.address]
+                )
+            }else {
+                null
+            }
+        }.singleOrNull()
+        returnedUser!!
+    }
+
+    override fun getLoggedInUser(id: String): UserRepository.User = transaction{
+        val returnedUser = DBUserTable.select { DBUserTable.id eq id }.map {
             UserRepository.User(
                 it[DBUserTable.id],
                 it[DBUserTable.username],
-                it[DBUserTable.password],
                 it[DBUserTable.name],
                 it[DBUserTable.phone],
                 it[DBUserTable.address]
             )
-        }.singleOrNull()
-
-        returnedUser = if (withUsername?.password == password){
-            withUsername
-        }else {
-            null
-        }
+        }.singleOrNull()!!
         returnedUser
     }
 
-    override fun addUser(user: UserRepository.User): UserRepository.User? = transaction {
+    override fun addUser(userDraft: UserRepository.UserDraft): UserRepository.User? = transaction {
         DBUserTable.insert {
             it[id] = UUID.randomUUID().toString()
-            it[username] = user.username
-            it[name] = user.name
-            it[password] = user.password
-            it[address] = user.address
-            it[phone] = user.phone
+            it[username] = userDraft.username
+            it[name] = userDraft.name
+            it[password] = userDraft.password
+            it[address] = userDraft.address
+            it[phone] = userDraft.phone
         } get DBUserTable.id
-        getUser(user.phone, user.password)
+        getUser(userDraft.phone, userDraft.password)
     }
 
     override fun deleteUser(id: String): Int = transaction {
@@ -51,8 +61,6 @@ class SQLUserRepository(private val db: Database): UserRepository {
 
     override fun updateUser(id: String, userDraft: UserRepository.UserDraft): Int = transaction {
         DBUserTable.update({ DBUserTable.id eq id }) {
-            it[name] = userDraft.name
-            it[phone] = userDraft.phone
             it[address] = userDraft.address
         }
     }

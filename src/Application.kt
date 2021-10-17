@@ -42,12 +42,14 @@ fun Application.configureRouting(){
 
         val vendorRepo = SQLVendorRepository(
         Database.connect(url = "jdbc:pgsql://localhost:5432/foodvendors",
-            user = "postgres", password = "12345"))
+            user = "postgres", password = "12345")
+        )
         vendorRepo.init()
 
         val userRepo = SQLUserRepository(
             Database.connect(url = "jdbc:pgsql://localhost:5432/foodvendors",
-                user = "postgres", password = "12345"))
+                user = "postgres", password = "12345")
+        )
         userRepo.init()
 
         val orderRepo = SQLOrderRepository(
@@ -83,8 +85,7 @@ fun Application.configureRouting(){
         post("/register") {
             val registerBody = call.receive<RegisterBody>()
 
-            val registerUser = UserRepository.User(
-                "",
+            val registerUser = UserRepository.UserDraft(
                 registerBody.username,
                 registerBody.password,
                 registerBody.name,
@@ -102,9 +103,11 @@ fun Application.configureRouting(){
         }
 
         authenticate {
+
             get("/me"){
                 val user = call.authentication.principal as JWTConfig.JwtUser
-                call.respond(user)
+                val returnedUser = userRepo.getLoggedInUser(user.userName)
+                call.respond(returnedUser)
             }
 
             get("/vendor/{id}") {
@@ -112,8 +115,7 @@ fun Application.configureRouting(){
                 val vendor = vendorRepo.getVendor(id.toString())
 
                 if (vendor == null) {
-                    call.respond(HttpStatusCode.NotFound,
-                        "Vendor not found")
+                    call.respond(HttpStatusCode.NotFound, "Vendor not found")
                 } else {
                     call.respond(vendor)
                 }
@@ -168,14 +170,40 @@ fun Application.configureRouting(){
             }
 
             post("/order") {
-                val orderDraft = call.receive<OrderDraft>()
-                val order = orderRepo.makeOrder(orderDraft)
+                val orderDrafts = call.receive<Array<OrderDraft>>()
+                val user = call.authentication.principal as JWTConfig.JwtUser
+                val preparedList = mutableListOf<OrderDraft>()
+                for (ord in orderDrafts){
+                    preparedList.add(
+                        OrderDraft(
+                            user.userName,
+                            ord.menuItemId,
+                            ord.businessId,
+                            ord.quantity,
+                            ord.address,
+                            ord.phone,
+                            ord.date,
+                            ord.time,
+                            ord.payOnDelivery
+                        )
+                    )
+                }
+                val orders = orderRepo.makeOrder(preparedList)
+                call.respond(HttpStatusCode.Created, orders)
+            }
+
+            get("/orders") {
+                val user = call.authentication.principal as JWTConfig.JwtUser
+                val order = orderRepo.getUserOrders(user.userName)
+
                 call.respond(order)
             }
 
-            get("/orders"){
-                val vendorId = call.receive<Vendor>()
-                call.respond(orderRepo.getOrders(vendorId.id))
+            get("/vendor/orders") {
+                val user = call.authentication.principal as JWTConfig.JwtUser
+                val order = orderRepo.getUserOrders(user.userName)
+
+                call.respond(order)
             }
 
             get("/order/{id}") {
@@ -183,8 +211,7 @@ fun Application.configureRouting(){
                 val order = orderRepo.getOrder(id.toString())
 
                 if (order == null) {
-                    call.respond(HttpStatusCode.NotFound,
-                        "Order not found")
+                    call.respond(HttpStatusCode.NotFound, "Order not found")
                 } else {
                     call.respond(order)
                 }
@@ -194,8 +221,7 @@ fun Application.configureRouting(){
                 val orderDraft = call.receive<OrderDraft>()
                 val orderId = call.parameters["id"]
                 if (orderId == null) {
-                    call.respond(HttpStatusCode.BadRequest,
-                        "Insert an ID")
+                    call.respond(HttpStatusCode.BadRequest, "Insert an ID")
                     return@put
                 }
 
@@ -214,8 +240,7 @@ fun Application.configureRouting(){
                 val orderId = call.parameters["id"]
 
                 if (orderId == null){
-                    call.respond(HttpStatusCode.BadRequest,
-                        "Insert an ID")
+                    call.respond(HttpStatusCode.BadRequest, "Insert an ID")
                     return@delete
                 }
 
@@ -230,13 +255,25 @@ fun Application.configureRouting(){
 
             post("/menu") {
                 val menuItemDraft = call.receive<MenuItemDraft>()
-                val menuItem = menuItemRepo.addMenuItem(menuItemDraft)
+                val uuid = menuItemRepo.addMenuItem(menuItemDraft)
+                val menuItem = MenuItem(
+                    uuid,
+                    menuItemDraft.businessId,
+                    menuItemDraft.name,
+                    menuItemDraft.description,
+                    menuItemDraft.price
+                )
                 call.respond(menuItem)
             }
 
             get("/menus"){
-                val vendorId = call.receive<Vendor>()
-                call.respond(menuItemRepo.getMenuItems(vendorId.id))
+                val user = call.authentication.principal as JWTConfig.JwtUser
+                call.respond(menuItemRepo.getMenuItems())
+            }
+
+            get("/vendor/menus"){
+                val user = call.authentication.principal as JWTConfig.JwtUser
+                call.respond(menuItemRepo.getVendorMenuItems(user.userName))
             }
 
             get("/menu/{id}") {
@@ -244,8 +281,7 @@ fun Application.configureRouting(){
                 val menuItem = menuItemRepo.getMenuItem(id.toString())
 
                 if (menuItem == null) {
-                    call.respond(HttpStatusCode.NotFound,
-                        "Order not found")
+                    call.respond(HttpStatusCode.NotFound, "Order not found")
                 } else {
                     call.respond(menuItem)
                 }
@@ -266,8 +302,7 @@ fun Application.configureRouting(){
                 if (updated > 0){
                     call.respond(menuItem!!)
                 }else {
-                    call.respond(HttpStatusCode.NotFound,
-                        "No vendor with id $menuId")
+                    call.respond(HttpStatusCode.NotFound, "No vendor with id $menuId")
                 }
             }
 
@@ -275,8 +310,7 @@ fun Application.configureRouting(){
                 val menuId = call.parameters["id"]
 
                 if (menuId == null){
-                    call.respond(HttpStatusCode.BadRequest,
-                        "Insert an ID")
+                    call.respond(HttpStatusCode.BadRequest, "Insert an ID")
                     return@delete
                 }
 

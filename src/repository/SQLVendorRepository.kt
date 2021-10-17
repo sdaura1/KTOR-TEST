@@ -11,7 +11,7 @@ import java.util.*
 
 class SQLVendorRepository(private val db: Database): VendorRepository {
 
-    override fun init()  = transaction(db){
+    override fun init() = transaction(db){
         SchemaUtils.create(DBVendorTable)
     }
 

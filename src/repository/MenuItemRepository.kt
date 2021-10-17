@@ -9,9 +9,11 @@ interface MenuItemRepository {
 
     fun getMenuItem(id: String): MenuItem?
 
-    fun getMenuItems(vendorId: String): List<MenuItem>
+    fun getMenuItems(): List<MenuItem>
 
-    fun addMenuItem(menuItemDraft: MenuItemDraft): MenuItem
+    fun getVendorMenuItems(vendorId: String): List<MenuItem>
+
+    fun addMenuItem(menuItemDraft: MenuItemDraft): String
 
     fun deleteMenuItem(id: String): Int
 

@@ -1,9 +1,7 @@
 package com.foodvendor.repository
 
-import com.foodvendor.database.DBMenuItem
+import com.foodvendor.database.DBMenuItemTable
 import com.foodvendor.database.DBOrderTable
-import com.foodvendor.database.DBVendorTable
-import com.foodvendor.database.DatabaseManager
 import com.foodvendor.entities.*
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -13,51 +11,64 @@ import java.util.*
 class SQLMenuItemRepository(private val db: Database): MenuItemRepository {
 
     override fun init() = transaction(db){
-        SchemaUtils.create(DBOrderTable)
+        SchemaUtils.create(DBMenuItemTable)
     }
 
     override fun getMenuItem(id: String): MenuItem? = transaction{
-        DBMenuItem.select { DBMenuItem.id eq id }.map {
+        DBMenuItemTable.select { DBMenuItemTable.id eq id }.map {
             MenuItem(
-                it[DBMenuItem.id],
-                it[DBMenuItem.businessId],
-                it[DBMenuItem.name],
-                it[DBMenuItem.description],
-                it[DBMenuItem.price]
+                it[DBMenuItemTable.id],
+                it[DBMenuItemTable.businessId],
+                it[DBMenuItemTable.name],
+                it[DBMenuItemTable.description],
+                it[DBMenuItemTable.price]
             )
         }.singleOrNull()
     }
 
-    override fun getMenuItems(vendorId: String): List<MenuItem> = transaction(db) {
-        DBMenuItem.selectAll().map {
+    override fun getMenuItems(): List<MenuItem> = transaction(db) {
+        DBMenuItemTable.selectAll().map {
             MenuItem(
-                it[DBMenuItem.id],
-                it[DBMenuItem.businessId],
-                it[DBMenuItem.name],
-                it[DBMenuItem.description],
-                it[DBMenuItem.price]
+                it[DBMenuItemTable.id],
+                it[DBMenuItemTable.businessId],
+                it[DBMenuItemTable.name],
+                it[DBMenuItemTable.description],
+                it[DBMenuItemTable.price]
             )
         }
     }
 
-    override fun addMenuItem(menuItemDraft: MenuItemDraft): MenuItem = transaction {
-        val id = DBMenuItem.insert {
-            it[id] = UUID.randomUUID().toString()
+    override fun getVendorMenuItems(vendorId: String): List<MenuItem> = transaction {
+        DBMenuItemTable.select { DBMenuItemTable.businessId eq vendorId }.map {
+            MenuItem(
+                it[DBMenuItemTable.id],
+                it[DBMenuItemTable.businessId],
+                it[DBMenuItemTable.name],
+                it[DBMenuItemTable.description],
+                it[DBMenuItemTable.price]
+            )
+        }
+    }
+
+    override fun addMenuItem(menuItemDraft: MenuItemDraft): String = transaction {
+        val uuid = UUID.randomUUID().toString()
+        DBMenuItemTable.insert {
+            it[id] = uuid
             it[businessId] = menuItemDraft.businessId
             it[name] = menuItemDraft.name
             it[description] = menuItemDraft.description
             it[price] = menuItemDraft.price
-        } get DBOrderTable.id
-        getMenuItem(id)!!
+        }
+        uuid
     }
 
     override fun deleteMenuItem(id: String): Int = transaction {
-        val deleted = DBMenuItem.deleteWhere{ DBMenuItem.id eq id }
+        val deleted = DBMenuItemTable.deleteWhere{ DBMenuItemTable.id eq id }
         deleted
     }
 
     override fun updateMenuItem(id: String, menuItemDraft: MenuItemDraft): Int = transaction{
-        val updatedOrder = DBMenuItem.update({ DBMenuItem.id eq id }) {
+        val updatedOrder = DBMenuItemTable.update({ DBMenuItemTable.id eq id }) {
             it[businessId] = menuItemDraft.businessId
             it[name] = menuItemDraft.name
             it[description] = menuItemDraft.description

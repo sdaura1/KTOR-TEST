@@ -1,9 +1,12 @@
 package com.foodvendor.database
 
+import com.foodvendor.database.DBOrderTable.primaryKey
 import org.jetbrains.exposed.sql.Table
 
 object DBOrderTable: Table() {
-    val id = varchar("id", 100).primaryKey()
+    val orderId = varchar("orderId", 64)
+    val id = varchar("id", 64).primaryKey()
+    val username = varchar("username", 64)
     var menuItemId = varchar("menuItemId", 100)
     var businessId = varchar("businessId", 100)
     var quantity = integer("quantity")

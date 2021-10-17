@@ -11,32 +11,43 @@ import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
+import kotlin.collections.ArrayList
 
 class SQLOrderRepository(private val db: Database): OrderRepository {
 
-    override fun init()  = transaction(db){
+    override fun init() = transaction(db){
         SchemaUtils.create(DBOrderTable)
     }
 
-    override fun makeOrder(orderDraft: OrderDraft): Order = transaction {
-        val id = DBOrderTable.insert {
-            it[id] = UUID.randomUUID().toString()
-            it[menuItemId] = orderDraft.menuItemId
-            it[businessId] = orderDraft.businessId
-            it[phone] = orderDraft.phone
-            it[address] = orderDraft.address
-            it[date] = orderDraft.date
-            it[time] = orderDraft.time
-            it[payOnDelivery] = orderDraft.payOnDelivery
-            it[quantity] = orderDraft.quantity
-        } get DBOrderTable.id
-        getOrder(id)!!
+    override fun makeOrder(orderDrafts: List<OrderDraft>): List<Order> = transaction {
+        val orderListId = UUID.randomUUID().toString()
+        val orders = mutableListOf<Order>()
+        var ordId: String
+        for (order in orderDrafts) {
+            ordId = DBOrderTable.insert {
+                it[orderId] = orderListId
+                it[id] = UUID.randomUUID().toString()
+                it[username] = order.username
+                it[menuItemId] = order.menuItemId
+                it[businessId] = order.businessId
+                it[phone] = order.phone
+                it[address] = order.address
+                it[date] = order.date
+                it[time] = order.time
+                it[payOnDelivery] = order.payOnDelivery
+                it[quantity] = order.quantity
+            } get DBOrderTable.id
+            orders.add(getOrder(ordId)!!)
+        }
+        orders
     }
 
-    override fun getOrders(vendorId: String): List<Order> = transaction(db) {
-        DBOrderTable.selectAll().map {
+    override fun getUserOrders(username: String): List<Order> = transaction(db) {
+        DBOrderTable.select { DBOrderTable.username eq username }.map {
             Order(
+                it[DBOrderTable.orderId],
                 it[DBOrderTable.id],
+                it[DBOrderTable.username],
                 it[DBOrderTable.menuItemId],
                 it[DBOrderTable.businessId],
                 it[DBOrderTable.quantity],
@@ -49,10 +60,30 @@ class SQLOrderRepository(private val db: Database): OrderRepository {
         }
     }
 
-    override fun getOrder(id: String): Order? = transaction{
-        DBOrderTable.select { DBVendorTable.id eq id }.map {
+    override fun getVendorOrders(vendorId: String): List<Order> = transaction {
+        DBOrderTable.select { DBOrderTable.businessId eq vendorId }.map {
             Order(
+                it[DBOrderTable.orderId],
                 it[DBOrderTable.id],
+                it[DBOrderTable.username],
+                it[DBOrderTable.menuItemId],
+                it[DBOrderTable.businessId],
+                it[DBOrderTable.quantity],
+                it[DBOrderTable.address],
+                it[DBOrderTable.phone],
+                it[DBOrderTable.date],
+                it[DBOrderTable.time],
+                it[DBOrderTable.payOnDelivery]
+            )
+        }
+    }
+
+    override fun getOrder(id: String): Order? = transaction {
+        DBOrderTable.select { DBOrderTable.id eq id }.map {
+            Order(
+                it[DBOrderTable.orderId],
+                it[DBOrderTable.id],
+                it[DBOrderTable.username],
                 it[DBOrderTable.menuItemId],
                 it[DBOrderTable.businessId],
                 it[DBOrderTable.quantity],
