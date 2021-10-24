@@ -1,17 +1,15 @@
 package com.foodvendor.repository
 
 import com.foodvendor.database.DBVendorTable
-import com.foodvendor.database.DatabaseManager
 import com.foodvendor.entities.Vendor
 import com.foodvendor.entities.VendorDraft
 import org.jetbrains.exposed.sql.*
-import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
 
 class SQLVendorRepository(private val db: Database): VendorRepository {
 
-    override fun init() = transaction(db){
+    override fun init() = transaction(db) {
         SchemaUtils.create(DBVendorTable)
     }
 

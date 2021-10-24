@@ -14,7 +14,13 @@ import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.server.engine.*
 import io.ktor.server.netty.*
+import io.netty.handler.codec.DateFormatter
 import org.jetbrains.exposed.sql.Database
+import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.*
 
 fun main(args: Array<String>) {
     embeddedServer(Netty, port = 8080, host = "0.0.0.0") {
@@ -66,13 +72,12 @@ fun Application.configureRouting(){
             val loginBody = call.receive<LoginBody>()
 
             val user = userRepo.getUser(loginBody.username, loginBody.password)
-            if (user == null){
-                call.respond(HttpStatusCode.Unauthorized,
-                    "Invalid Credentials")
-                return@post
-            }
-            val token = jwtConfig.generateToken(JWTConfig.JwtUser(user.username, user.id))
-
+            val token = jwtConfig.generateToken(
+                JWTConfig.JwtUser(
+                    user.username,
+                    user.id
+                )
+            )
             val userCredentials = UserCredentials(
                 token,
                 user.username,
@@ -85,7 +90,7 @@ fun Application.configureRouting(){
         post("/register") {
             val registerBody = call.receive<RegisterBody>()
 
-            val registerUser = UserRepository.UserDraft(
+            val registerUser = UserDraft(
                 registerBody.username,
                 registerBody.password,
                 registerBody.name,
@@ -94,11 +99,6 @@ fun Application.configureRouting(){
             )
 
             val user = userRepo.addUser(registerUser)
-            if (user == null){
-                call.respond(HttpStatusCode.BadRequest,
-                    "User already Exists")
-                return@post
-            }
             call.respond(user)
         }
 

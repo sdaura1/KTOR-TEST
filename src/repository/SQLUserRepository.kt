@@ -1,6 +1,8 @@
 package com.foodvendor.repository
 
 import com.foodvendor.database.DBUserTable
+import com.foodvendor.entities.User
+import com.foodvendor.entities.UserDraft
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.*
@@ -11,11 +13,11 @@ class SQLUserRepository(private val db: Database): UserRepository {
         SchemaUtils.create(DBUserTable)
     }
 
-    override fun getUser(phone: String, password: String): UserRepository.User = transaction {
-        var returnedUser: UserRepository.User? = null
+    override fun getUser(phone: String, password: String): User = transaction {
+        var returnedUser: User? = null
         DBUserTable.select { DBUserTable.phone eq phone }.map {
             returnedUser = if (it[DBUserTable.password] == password){
-                UserRepository.User(
+                User(
                     it[DBUserTable.id],
                     it[DBUserTable.username],
                     it[DBUserTable.name],
@@ -29,9 +31,9 @@ class SQLUserRepository(private val db: Database): UserRepository {
         returnedUser!!
     }
 
-    override fun getLoggedInUser(id: String): UserRepository.User = transaction{
+    override fun getLoggedInUser(id: String): User = transaction{
         val returnedUser = DBUserTable.select { DBUserTable.id eq id }.map {
-            UserRepository.User(
+            User(
                 it[DBUserTable.id],
                 it[DBUserTable.username],
                 it[DBUserTable.name],
@@ -42,7 +44,7 @@ class SQLUserRepository(private val db: Database): UserRepository {
         returnedUser
     }
 
-    override fun addUser(userDraft: UserRepository.UserDraft): UserRepository.User? = transaction {
+    override fun addUser(userDraft: UserDraft): User = transaction {
         DBUserTable.insert {
             it[id] = UUID.randomUUID().toString()
             it[username] = userDraft.username
@@ -59,7 +61,7 @@ class SQLUserRepository(private val db: Database): UserRepository {
         deleted
     }
 
-    override fun updateUser(id: String, userDraft: UserRepository.UserDraft): Int = transaction {
+    override fun updateUser(id: String, userDraft: UserDraft): Int = transaction {
         DBUserTable.update({ DBUserTable.id eq id }) {
             it[address] = userDraft.address
         }

@@ -5,6 +5,7 @@ import com.auth0.jwt.JWTVerifier
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.auth.*
 import io.ktor.auth.jwt.*
+import java.sql.Date
 
 class JWTConfig(jwtSecret: String) {
 
@@ -27,6 +28,7 @@ class JWTConfig(jwtSecret: String) {
         .withIssuer(jwtIssuer)
         .withClaim(CLAIM_USERID, user.userId)
         .withClaim(CLAIM_USERNAME, user.userName)
+        .withExpiresAt(Date(System.currentTimeMillis() + (1 * 60 * 60 * 1000)))
         .sign(jwtAlgorithm)
 
     fun configurationFeature(config: JWTAuthenticationProvider.Configuration)
@@ -44,5 +46,8 @@ class JWTConfig(jwtSecret: String) {
             }
         }
     }
-    data class JwtUser(val userId: String, val userName: String): Principal
+    data class JwtUser(
+        val userId: String,
+        val userName: String
+        ): Principal
 }
