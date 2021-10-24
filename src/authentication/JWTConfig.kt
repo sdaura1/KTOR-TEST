@@ -28,7 +28,7 @@ class JWTConfig(jwtSecret: String) {
         .withIssuer(jwtIssuer)
         .withClaim(CLAIM_USERID, user.userId)
         .withClaim(CLAIM_USERNAME, user.userName)
-        .withExpiresAt(Date(System.currentTimeMillis() + (1 * 60 * 60 * 1000)))
+        .withExpiresAt(Date(System.currentTimeMillis() + (86400 * 1000)))
         .sign(jwtAlgorithm)
 
     fun configurationFeature(config: JWTAuthenticationProvider.Configuration)
@@ -46,8 +46,6 @@ class JWTConfig(jwtSecret: String) {
             }
         }
     }
-    data class JwtUser(
-        val userId: String,
-        val userName: String
-        ): Principal
+
+    data class JwtUser(val userId: String, val userName: String): Principal
 }
